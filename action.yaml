@@ -1,0 +1,78 @@
+name: 'Open Component Model actions'
+description: 'Execute Open Component Model operations on project'
+inputs:
+  tool_version:
+    description: 'Version of the ocm tool'
+    required: true
+    default: 'v0.1.0-alpha.1'
+  tool_repo:
+    description: 'Repository of the ocm tool'
+    required: true
+    default: 'gardender/component-cli'
+  action:
+    description: 'action to execute'
+    required: true
+  component:
+    description: 'component name'
+    required: false
+  version:
+    description: 'component version'
+    required: false
+  descriptor:
+    description: 'path to initial component descriptor'
+    required: false
+  version_cmd:
+    description: 'command used to extract actual version'
+    required: false
+  version_file:
+    description: 'file to lookup the actual version'
+    required: false
+  directory:
+    description: 'directory to store component information'
+    required: false
+  ctf:
+    description: 'ctf file path'
+    required: false
+    default: 'gen/ocm/ctf'
+  resources:
+    description: 'resource specification'
+    required: false
+  comprepo_url:
+    description: component repository base url
+    required: false
+  comprepo_user:
+    description: component repository user
+    required: false
+  comprepo_password:
+    description: component repository password
+    required: false
+outputs:
+  component-name:
+    description: 'component name'
+  component-version:
+    description: 'component version'
+  component-path:
+    description: 'component path'
+  transport-archive:
+    description: 'transport archive path'
+branding:
+  color: 'blue'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    tool_version: ${{ inputs.tool_version }}
+    tool_repo: ${{ inputs.tool_repo }}
+    ocm_resources: ${{ inputs.resources }}
+    ocm_ctf: ${{ inputs.ctf }}
+    ocm_component: ${{ inputs.component }}
+    ocm_versioncmd: ${{ inputs.version_cmd }}
+    ocm_versionfile: ${{ inputs.version_file }}
+    ocm_componentversion: ${{ inputs.version }}
+    ocm_descriptor: ${{ inputs.descriptor }}
+    ocm_componentdir: ${{ inputs.directory }}
+    ocm_comprepo: ${{ inputs.comprepo_url }}
+    ocm_comprepouser: ${{ inputs.comprepo_user }}
+    ocm_comprepopassword: ${{ inputs.comprepo_password }}
+  args:
+    - ${{ inputs.action }}
