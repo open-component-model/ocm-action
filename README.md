@@ -1,5 +1,8 @@
 # Open Component Model action
 
+[![REUSE status](https://api.reuse.software/badge/github.com/open-component-model/ocm-action)](https://api.reuse.software/info/github.com/open-component-model/ocm-action)
+
+
 This action installs a dedicated version of the OCM tool and executes the
 operation specified with the `action` input.
 All paths are evaluated relative to the workdir.
@@ -50,7 +53,7 @@ If not given the repository based component identity is used.
 
 **Optional** The component version.
 
-If not given the `version_cmd` input is checked for a command to execute to derive 
+If not given the `version_cmd` input is checked for a command to execute to derive
 the version. Otherwise the actual tag is checked. If not present the `version_file`
 file ic checked and appended by the commit id.
 
@@ -110,3 +113,9 @@ with:
   tool-version: v0.1.0-alpha.1
   action: add_resources
 ```
+
+## Licensing
+
+Copyright 2022 SAP SE or an SAP affiliate company and Open Component Model contributors.
+Please see our [LICENSE](LICENSE) for copyright and license information.
+Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/open-component-model/ocm-action).
