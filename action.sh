@@ -1,23 +1,6 @@
 #!/bin/bash -e
 
 WORKSPACE="${GITHUB_WORKSPACE:=/usr/local}"
-WORKSPACE="/usr/local"
-TOOLVERSION=${tool_version:=v0.1.0-alpha.1}
-TOOLREPO=${tool_repo:=open-component-model/ocm}
-URL=https://github.com/$TOOLREPO/releases/download
-PLATFORM=linux-amd64
-if [ "$REPO" != "gardener/component-cli" ]; then
-  ARCHIVESUFFIX=.tgz
-  ARCHIVEFILE="ocm-$PLATFORM$ARCHIVESUFFIX"
-else
-  ARCHIVESUFFIX=.gz
-  ARCHIVEFILE="componentcli-$PLATFORM$ARCHIVESUFFIX"
-fi
-FILE="$(basename "$ARCHIVEFILE" $ARCHIVESUFFIX)"
-
-
-FILE="$(basename "$ARCHIVEFILE" .gz)"
-OCM="/tmp/$FILE"
 AUTH=/tmp/config
 
 VERSIONFILE=${ocm_versionfile:=VERSION}
@@ -30,18 +13,21 @@ error()
   exit 1
 }
 
-install()
-{( 
-  cd /tmp
-  echo "Install Open Component Model Tool version $VERSION"
-  rm -f "$ARCHIVEFILE"
-  wget -q "$URL/$TOOLVERSION/$ARCHIVEFILE"
-  if [ "$ARCHIVESUFFIX" = .tgz ]; then
-    tar -xzf "$ARCHIVEFILE"
-  else
-    gunzip -f "$ARCHIVEFILE"
+if [ -x bin/ocm ]; then
+  OCM=bin/ocm
+else
+  if [ -x "/usr/local/bin/ocm" ]; then
+    OCM="/usr/local/bin/ocm"
   fi
-)}
+  if ! which ocm >/dev/null; then
+    error ocm cli not found
+  fi
+fi
+
+setOutput()
+{
+  echo "$1=$@" >> $GITHUB_OUTPUT
+}
 
 getVersion()
 {
@@ -65,8 +51,8 @@ getVersion()
           ocm_componentversion="${versions[0]}"
         else
           if [ -f "$VERSIONFILE" ]; then
-            echo "taking component version from $VERSIONFILE file"
-            ocm_componentversion="$(cat "$VERSIONFILE")-snapshot-$(git rev-parse --short HEAD)"
+            echo "using component version from $VERSIONFILE file"
+            ocm_componentversion="$(cat "$VERSIONFILE")-$(git rev-parse --short HEAD)"
           fi
         fi
       fi
@@ -77,34 +63,39 @@ getVersion()
   fi
 }
 
+creds=( )
 createAuth()
 {
+
   if [ -z "$ocm_comprepo" ]; then
-    error "component repository required"
+    ocm_comprepo="ghcr.io/$GITHUB_REPOSITORY_OWNER/ocm"
   fi
   if [ -z "$ocm_comprepouser" ]; then
-    error "component repository user required"
+    if [ "${ocm_comprepo#ghcr.io/}" = "$ocm_comprepouser" ]; then
+      error "component repository user required"
+    fi
+    ocm_comprepouser=$GITHUB_REPOSITORY_OWNER
   fi
   if [ -z "$ocm_comprepopassword" ]; then
-    error "component repository password required"
+    if [ "${ocm_comprepo#ghcr.io/}" = "$ocm_comprepouser" ]; then
+      error "component repository password required"
+    fi
+    ocm_comprepopassword="$GITHUB_TOKEN"
   fi
   comprepourl="${ocm_comprepo#*//}"
+  repohost="${comprepourl%%/*}"
   comprepourl="${ocm_comprepo%$comprepourl}${comprepourl%%/*}"
-
-  cat >$AUTH <<EOF
-{
-        "auths": {
-                "$comprepourl": {
-                        "auth": "$(base64 <<<"$ocm_comprepouser:$ocm_comprepopassword")"
-                }
-        },
-        "HttpHeaders": {
-                "User-Agent": "Docker-Client/18.06.1-ce (linux)"
-        }
-}
-EOF
+  creds=( --cred :type=OCIRegistry --cred ":hostname=$repohost" --cred "username=$ocm_comprepouser" --cred "password=$ocm_comprepopassword" )
 }
 
+if [ -z "$ocm_ctf" ]; then
+  ocm_ctf="gen/ocm/transport.ctf"
+fi
+if [ -z "$ocm_componentdir" ]; then
+  ocm_componentdir="gen/ocm/component"
+fi
+
+echo "WORKSPACE:     $WORKSPACE"
 echo "REPO:          $(git config --get remote.origin.url)"
 echo "ACTION:        $1"
 echo "COMPONENT_DIR: $ocm_componentdir"
@@ -120,52 +111,32 @@ if [ -n "$ocm_comprepopassword" ]; then
 fi
 echo "COMPREPO_PASS: $ocm_comprepopassword"
 
-install
-echo "OCM:           $OCM"
-
-if [ -z "$ocm_ctf" ]; then
-  ocm_ctf="gen/ocm/transport.ctf"
-fi
-
 createComponent()
 {
-  if [ -z "$ocm_componentdir" ]; then
-    ocm_componentdir=gen/ocm/component
+  if [ -z "$ocm_provider" ]; then
+    error provider required
   fi
-  mkdir -p "$ocm_componentdir"
+  if [ -z "$ocm_component" ]; then
+    ocm_component="$REPO"
+  fi
+  mkdir -p "$(dirname "$ocm_componentdir")"
   getVersion
-  if [ -z "$ocm_descriptor" -a -f ocm/component-descriptor.yaml ]; then
-    ocm_descriptor=ocm/component-descriptor.yaml
+  if [ -z "$ocm_component" ]; then
+    ocm_component="$REPO"
   fi
-  if [ -n "$ocm_descriptor" ]; then
-    echo "Using predefined component descriptor $ocm_descriptor"
-    cp "$ocm_descriptor" "$ocm_component_dir/component-descriptor.yaml"
-    opts=
-    if [ -n "$ocm_component" ]; then
-      echo "  setting component name $ocm_component"
-      opts="--component-name $ocm_component"
-    fi
-    echo "  setting component version $ocm_componentversion"
-    $OCM ca set "$ocm_componentdir" $opts --component-version $ocm_componentversion
-  else
-    if [ -z "$ocm_component" ]; then
-      ocm_component="$REPO"
-    fi
-    echo "Creating component descriptor for $ocm_componentn version $ocm_componentversion"
-    $OCM ca create "$ocm_componentdir" --component-name $ocm_component --component-version $ocm_componentversion   
-  fi
-  ocm_component=$($OCM ca get "$ocm_componentdir" --property name)
+  echo "Creating component archive for $ocm_component version $ocm_componentversion"
+  $OCM create ca --file "$ocm_componentdir" "$ocm_component" $ocm_componentversion --provider "$ocm_provider"   
 
   cat >/tmp/sources <<EOF
 name: 'project'
-type: 'git'
+type: 'filesystem'
 access:
-  type: "git"
-  repository: $REPO
-  version: $GITHUB_SHA
+  type: "gitHub"
+  repoUrl: $REPO
+  commit: $(git rev-parse HEAD)
 version: $ocm_componentversion
 EOF
-  $OCM ca sources add "$ocm_componentdir" /tmp/sources
+  $OCM add sources "$ocm_componentdir" /tmp/sources
 }
 
 printDescriptor()
@@ -173,14 +144,16 @@ printDescriptor()
   echo "Component Descriptor:"
   cat "$ocm_componentdir/component-descriptor.yaml"
   echo "Component name $ocm_component"
-  echo "::set-output name=component-name::$ocm_component"
-  echo "::set-output name=component-version::$ocm_componentversion"
-  echo "::set-output name=component-path::$ocm_componentdir"
+  setOutput component-name "$ocm_component"
+  setOutput component-version "$ocm_componentversion"
+  setOutput component-path "$ocm_componentdir"
 }
 
 addResources()
 {
-  createComponent
+  if [ ! -e "$ocm_componentdir" ]; then
+    createComponent
+  fi
   if [ -z "$ocm_resources" ]; then
     if [ -f "gen/ocm/resources.yaml" ]; then
       ocm_resources=gen/ocm/resources.yaml
@@ -190,35 +163,72 @@ addResources()
       fi
     fi
   fi
-  if [ -z "$ocm_resources" ]; then
-    error "no resources.yaml found"
+  if [ -z "$ocm_references" ]; then
+    if [ -f "gen/ocm/references.yaml" ]; then
+      ocm_references=gen/ocm/references.yaml
+    else
+      if [ -f "ocm/resources.yaml" ]; then
+        ocm_references=ocm/references.yaml
+      fi
+    fi
   fi
-  if [ ! -f "$ocm_resources" ]; then
-    error "$ocm_resources not found"
+  if [ -z "$ocm_settings" ]; then
+    if [ -f gen/ocm/settings.yaml ]; then
+      ocm_settings=gen/ocm/settings.yaml
+    else
+      if [ -f "ocm/settings.yaml" ]; then
+        ocm_settings=ocm/settings.yaml
+      fi
+    fi
   fi
-  $OCM ca resource add "$ocm_componenetdir" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_resources"
+  settings=( )
+  if [ -n "$ocm_settings" ]; then
+    if [ ! -f "$ocm_settings" ]; then
+      error settings file "$ocm_settings" not found
+    fi
+    settings=( --settings "$ocm_settings" )
+  fi
+  if [ -z "$ocm_resources" -a -z "$ocm_references" ]; then
+    error "no resources.yaml or references.yaml found"
+  fi
+  if [ -n "$ocm_resources" ]; then
+    if [ ! -f "$ocm_resources" ]; then
+      error "$ocm_resources not found"
+    fi
+    echo $OCM add resources "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_resources"
+    $OCM add resources "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_resources"
+  fi
+  if [ -n "$ocm_references" ]; then
+    if [ ! -f "$ocm_references" ]; then
+      error "$ocm_references not found"
+    fi
+    echo $OCM add references "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_references"
+    $OCM add references "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_references"
+  fi
 }
 
 addComponent()
 {
-  if [ -z "$ocm_componentdir" ]; then
-    ocm_componentdir=gen/ocm/component
+  if [ ! -f "$ocm_componentdir" ]; then
+    addResources
   fi
   mkdir -p "$(dirname "$ocm_ctf")"
-  $OCM ctf add "$ocm_ctf" "$ocm_componentdir"
+  $OCM transfer ca "$ocm_componentdir" "$ocm_ctf"
   echo "Transport Archive is $ocm_ctf"
-  echo "::set-output name=transport-archive::$ocm_ctf"
+  setOutput transport-archive "$ocm_ctf"
 }
 
 pushCTF()
 {
   createAuth
   if [ ! -f "$ocm_ctf" -o -n "$ocm_componentdir" ]; then
-    addCTF
+    addComponent
   fi
-  $OCM ctf push --registry-config "$AUTH" "$ocm_ctf" --repo-ctx "$ocm_comprepo" 
   echo "Transport Archive is $ocm_ctf"
-  echo "::set-output name=transport-archive::$ocm_ctf"
+  echo "Component Repository is $ocm_comprepo"
+  echo $OCM "${creds[@]}" transfer ctf "$ocm_ctf" "$ocm_comprepo"
+  $OCM "${creds[@]}" transfer ctf "$ocm_ctf" "$ocm_comprepo"
+  setOutput transport-archive "$ocm_ctf"
 }
 
 case "$1" in

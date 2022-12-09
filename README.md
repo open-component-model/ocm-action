@@ -4,15 +4,12 @@ This action installs a dedicated version of the OCM tool and executes the
 operation specified with the `action` input.
 All paths are evaluated relative to the workdir.
 
+## Prerequisites
+
+The `ocm`command line tool must be installed.
+This can be done with the action [`open-component-model/ocm-setup-action`](https://github.com/open-component-model/ocm-setup-action).
+
 ## Inputs
-
-### `tool-version`
-
-**Optional** The tool verson to install. Default `"v0.1.0-alpha.1"`.
-
-### `tool-repo`
-
-**Optional** The tool repository to install from. Default `"gardener/component-cli"`.
 
 ### `action`
 
@@ -22,29 +19,21 @@ Possible actions are
 
 |Action|Meaning|Inputs|
 |------|-------|------|
-|`create_component`|create a component folder with component descriptor| `directory`, `component`, `version`, `descriptor` |
-|`add_resources`|add resources to an already existing or new component| `directory`, `component`, `version`, `descriptor`, `resources` |
+|`create_component`|create a component folder with component descriptor| `directory`, `component`, `version`, `provider` |
+|`add_resources`|add resources/references to an already existing or new component| `directory`, `component`, `version`, `provider`, `resources`, `references`, `settigs` |
 |`add_component`|add a component to an extisting or new transport archive| `directory`, `ctf` |
-|`push_ctf`|push the transport archive. If it does not exist, yet, or a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `comprepo_user`, `comprepo_password` |
+|`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `comprepo_user`, `comprepo_password` |
 
 ### `directory`
 
-**Optional** Will be defaulted by `gen/ocm/component`, if input is required by action.
+**Optional** Will be defaulted to `gen/ocm/component`, if input is required by action.
 
 The directory to generate the component information
 
-### `descriptor`
-
-**Optional** The inital component descriptor to use.
-
-If not specified it checks for a file `ocm/component-descriptor.yaml`.
-
 ### `component`
 
-**Optional** The component name.
-
-If a descriptor is specified the component name can be specified there.
-If not given the repository based component identity is used.
+**Optional** The component name. If not given the component name is derived from
+the source repository.
 
 ### `version`
 
@@ -52,7 +41,7 @@ If not given the repository based component identity is used.
 
 If not given the `version_cmd` input is checked for a command to execute to derive 
 the version. Otherwise the actual tag is checked. If not present the `version_file`
-file ic checked and appended by the commit id.
+file is checked and appended by the commit id.
 
 ### `version_file`
 
@@ -62,10 +51,23 @@ file ic checked and appended by the commit id.
 
 **Optional** A command called to determine the version of the component to create.
 
+### `provider`
+
+**Required for** `create_component` The provider name.
+
 ### `resources`
 
 **Optional** The resource specification file describing the resources to add.
 If not specified it checks for `gen/ocm/resources.yaml` and `ocm/resources.yaml`.
+With this a previous build step can create this file under the `gen` folder or
+the sources provide a static file.
+
+### `references`
+
+**Optional** The reference specification file describing the references to add.
+If not specified it checks for `gen/ocm/references.yaml` and `ocm/references.yaml`.
+With this a previous build step can create this file under the `gen` folder or
+the sources provide a static file.
 
 ### `ctf`
 
@@ -73,16 +75,20 @@ If not specified it checks for `gen/ocm/resources.yaml` and `ocm/resources.yaml`
 
 ### `comprepo_url`
 
-**Required for** `push_ctf`. The base URL for the used component repository.
-For example `https://ghcr.io/mandelsoft/cnudie`.
+**Optional for** `push_ctf`. The base URL for the used component repository.
+For example `https://ghcr.io/mandelsoft/cnudie`. The default is the sub repo `ocm` of
+the organization of the built repository.
 
 ### `comprepo_user`
 
-**Required for** `push_ctf`. The username used to access the component repository.
+**Optional for** `push_ctf`. The username used to access the component repository.
+The default is the owner of the actually built repository.
 
 ### `comprepo_password`
 
 **Required for** `push_ctf`. The password used to access the component repository.
+The default is the GITHUB_TOKEN environment variable of the actually built repository.
+It requires packages write permission.
 
 ## Outputs
 
@@ -107,6 +113,5 @@ The (optional) workspace relative path of the generated transport archive
 ```
 uses: open-component-model/ocm-action@main
 with:
-  tool-version: v0.1.0-alpha.1
   action: add_resources
 ```

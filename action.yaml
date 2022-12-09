@@ -1,14 +1,6 @@
 name: 'Open Component Model actions'
 description: 'Execute Open Component Model operations on project'
 inputs:
-  tool_version:
-    description: 'Version of the ocm tool'
-    required: true
-    default: 'v0.1.0-alpha.1'
-  tool_repo:
-    description: 'Repository of the ocm tool'
-    required: true
-    default: 'gardender/component-cli'
   action:
     description: 'action to execute'
     required: true
@@ -17,9 +9,6 @@ inputs:
     required: false
   version:
     description: 'component version'
-    required: false
-  descriptor:
-    description: 'path to initial component descriptor'
     required: false
   version_cmd:
     description: 'command used to extract actual version'
@@ -30,10 +19,16 @@ inputs:
   directory:
     description: 'directory to store component information'
     required: false
+  provider:
+    description: 'provider name'
+    required: false
   ctf:
     description: 'ctf file path'
     required: false
     default: 'gen/ocm/ctf'
+  settings:
+    description: 'settings file for resource add commands'
+    required: false
   resources:
     description: 'resource specification'
     required: false
@@ -58,21 +53,22 @@ outputs:
 branding:
   color: 'blue'
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  env:
-    tool_version: ${{ inputs.tool_version }}
-    tool_repo: ${{ inputs.tool_repo }}
-    ocm_resources: ${{ inputs.resources }}
-    ocm_ctf: ${{ inputs.ctf }}
-    ocm_component: ${{ inputs.component }}
-    ocm_versioncmd: ${{ inputs.version_cmd }}
-    ocm_versionfile: ${{ inputs.version_file }}
-    ocm_componentversion: ${{ inputs.version }}
-    ocm_descriptor: ${{ inputs.descriptor }}
-    ocm_componentdir: ${{ inputs.directory }}
-    ocm_comprepo: ${{ inputs.comprepo_url }}
-    ocm_comprepouser: ${{ inputs.comprepo_user }}
-    ocm_comprepopassword: ${{ inputs.comprepo_password }}
-  args:
-    - ${{ inputs.action }}
+  using: composite
+  steps:
+  - shell: bash
+    env:
+      ocm_settings: ${{ inputs.settings }}
+      ocm_resources: ${{ inputs.resources }}
+      ocm_ctf: ${{ inputs.ctf }}
+      ocm_component: ${{ inputs.component }}
+      ocm_versioncmd: ${{ inputs.version_cmd }}
+      ocm_versionfile: ${{ inputs.version_file }}
+      ocm_componentversion: ${{ inputs.version }}
+      ocm_provider: ${{ inputs.provider }}
+      ocm_componentdir: ${{ inputs.directory }}
+      ocm_comprepo: ${{ inputs.comprepo_url }}
+      ocm_comprepouser: ${{ inputs.comprepo_user }}
+      ocm_comprepopassword: ${{ inputs.comprepo_password }}
+    run: |
+      echo "path: ${{ github.action_path }}"
+      "${{ github.action_path }}/action.sh" "${{ inputs.action }}"
