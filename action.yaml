@@ -29,8 +29,14 @@ inputs:
   settings:
     description: 'settings file for resource add commands'
     required: false
+  var_values:
+    description: 'variable values (in yaml syntax) passed to templater'
+    required: false
   resources:
     description: 'resource specification'
+    required: false
+  templater:
+    description: 'Templater used for processing input files'
     required: false
   comprepo_url:
     description: component repository base url
@@ -58,6 +64,7 @@ runs:
   - shell: bash
     env:
       ocm_settings: ${{ inputs.settings }}
+      ocm_var_values: ${{ inputs.var_values }}
       ocm_resources: ${{ inputs.resources }}
       ocm_ctf: ${{ inputs.ctf }}
       ocm_component: ${{ inputs.component }}
@@ -66,6 +73,7 @@ runs:
       ocm_componentversion: ${{ inputs.version }}
       ocm_provider: ${{ inputs.provider }}
       ocm_componentdir: ${{ inputs.directory }}
+      ocm_templater: ${{ inputs.templater }}
       ocm_comprepo: ${{ inputs.comprepo_url }}
       ocm_comprepouser: ${{ inputs.comprepo_user }}
       ocm_comprepopassword: ${{ inputs.comprepo_password }}

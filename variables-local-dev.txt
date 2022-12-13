@@ -1,0 +1,11 @@
+export ocm_component=github.com/jensh007/mysimpleserver
+export ocm_versionfile="VERSION"
+export ocm_comprepo=ghcr.io/jensh007/ocm
+export ocm_comprepouser=jensh007
+export ocm_comprepouser=jensh007
+export ocm_comprepopassword=foo
+export ocm_provider=acme
+export ocm_comprepouser=foo_user
+export ocm_comprepopassword=secret
+export ocm_templater=spiff
+export ocm_resources=resources.yaml
