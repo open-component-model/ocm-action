@@ -215,6 +215,7 @@ addComponent()
     echo "Dir $ocm_componentdir not found adding resources"
     addResources
   fi
+  echo "Transfer CA to CTF"
   mkdir -p "$(dirname "$ocm_ctf")"
   $OCM transfer ca "$ocm_componentdir" "$ocm_ctf"
   echo "Transport Archive is $ocm_ctf"
