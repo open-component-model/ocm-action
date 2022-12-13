@@ -66,7 +66,7 @@ getVersion()
 creds=( )
 createAuth()
 {
-
+  echo "createAuth()"
   if [ -z "$ocm_comprepo" ]; then
     ocm_comprepo="ghcr.io/$GITHUB_REPOSITORY_OWNER/ocm"
   fi
@@ -85,6 +85,7 @@ createAuth()
   comprepourl="${ocm_comprepo#*//}"
   repohost="${comprepourl%%/*}"
   comprepourl="${ocm_comprepo%$comprepourl}${comprepourl%%/*}"
+  echo "Credential args repohost: $repohost, username: $username"
   creds=( --cred :type=OCIRegistry --cred ":hostname=$repohost" --cred "username=$ocm_comprepouser" --cred "password=$ocm_comprepopassword" )
 }
 
@@ -125,7 +126,7 @@ createComponent()
     ocm_component="$REPO"
   fi
   echo "Creating component archive for $ocm_component version $ocm_componentversion"
-  $OCM create ca --file "$ocm_componentdir" "$ocm_component" $ocm_componentversion --provider "$ocm_provider"   
+  $OCM create ca --file "$ocm_componentdir" "$ocm_component" $ocm_componentversion --provider "$ocm_provider"
 
   cat >/tmp/sources <<EOF
 name: 'project'
@@ -152,6 +153,7 @@ printDescriptor()
 addResources()
 {
   if [ ! -e "$ocm_componentdir" ]; then
+    echo "Dir $ocm_componentdir not found creating component"
     createComponent
   fi
   if [ -z "$ocm_resources" ]; then
@@ -209,7 +211,8 @@ addResources()
 
 addComponent()
 {
-  if [ ! -f "$ocm_componentdir" ]; then
+  if [ ! -d "$ocm_componentdir" ]; then
+    echo "Dir $ocm_componentdir not found adding resources"
     addResources
   fi
   mkdir -p "$(dirname "$ocm_ctf")"
@@ -220,8 +223,10 @@ addComponent()
 
 pushCTF()
 {
+  echo "pushCTF"
   createAuth
-  if [ ! -f "$ocm_ctf" -o -n "$ocm_componentdir" ]; then
+  if [ ! -d "$ocm_ctf" -o -n "$ocm_componentdir" ]; then
+    echo "Dir $ocm_ctf not found, creating CTF"
     addComponent
   fi
   echo "Transport Archive is $ocm_ctf"
