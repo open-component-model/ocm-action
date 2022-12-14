@@ -223,10 +223,9 @@ addComponent()
 
 pushCTF()
 {
-  echo "pushCTF"
+  echo "pushCTF with ocm_ctf: ${ocm_ctf} and ${ocm_componentdir}"
   createAuth
-  if [ ! -d "$ocm_ctf" -o -n "$ocm_componentdir" ]; then
-    echo "Dir $ocm_ctf not found, creating CTF"
+  if [ ! -d "$ocm_ctf" ]; then
     addComponent
   fi
   echo "Transport Archive is $ocm_ctf"
