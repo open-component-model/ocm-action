@@ -97,12 +97,15 @@ if [ -z "$ocm_componentdir" ]; then
 fi
 
 echo "WORKSPACE:     $WORKSPACE"
-echo "REPO:          $(git config --get remote.origin.url)"
+echo "REPO:          $REPO"
 echo "ACTION:        $1"
 echo "COMPONENT_DIR: $ocm_componentdir"
 echo "COMPONENT:     $ocm_component"
+echo "PROVIDER:      $ocm_provider"
 echo "DESCRIPTOR:    $ocm_descriptor"
 echo "VERSION_CMD:   $ocm_versioncmd"
+echo "VERSION:       $ocm_componentversion"
+echo "TEMPLATER:     $ocm_templater"
 echo "RESOURCES:     $ocm_resources"
 echo "CTF:           $ocm_ctf"
 echo "COMPREPO:      $ocm_comprepo"
@@ -126,6 +129,7 @@ createComponent()
     ocm_component="$REPO"
   fi
   echo "Creating component archive for $ocm_component version $ocm_componentversion"
+  echo "$OCM create ca --file $ocm_componentdir $ocm_component $ocm_componentversion --provider $ocm_provider"
   $OCM create ca --file "$ocm_componentdir" "$ocm_component" $ocm_componentversion --provider "$ocm_provider"
 
   cat >/tmp/sources <<EOF
@@ -184,11 +188,26 @@ addResources()
     fi
   fi
   settings=( )
-  if [ -n "$ocm_settings" ]; then
-    if [ ! -f "$ocm_settings" ]; then
-      error settings file "$ocm_settings" not found
+  if [ -n "$ocm_var_values" ]; then
+    if [ -n "$ocm_settings" ]; then
+      error "Use either settings or ocm_values but not both"
     fi
-    settings=( --settings "$ocm_settings" )
+    echo "${ocm_var_values}" > gen/ocm/settings.yaml
+    settings=( --settings "gen/ocm/settings.yaml" )
+    echo "Variables used for templating:"
+    cat gen/ocm/settings.yaml
+  else
+    if [ -n "$ocm_settings" ]; then
+      if [ ! -f "$ocm_settings" ]; then
+        error settings file "$ocm_settings" not found
+      fi
+      settings=( --settings "$ocm_settings" )
+    fi
+  fi
+
+  templater=( )
+  if [ -n "$ocm_templater" ]; then
+    templater=( --templater "$ocm_templater" )
   fi
   if [ -z "$ocm_resources" -a -z "$ocm_references" ]; then
     error "no resources.yaml or references.yaml found"
@@ -197,15 +216,15 @@ addResources()
     if [ ! -f "$ocm_resources" ]; then
       error "$ocm_resources not found"
     fi
-    echo $OCM add resources "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_resources"
-    $OCM add resources "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_resources"
+    echo $OCM add resources "$ocm_componentdir" "${settings[@]}" "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_resources"
+    $OCM add resources "$ocm_componentdir" "${settings[@]}"  "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_resources"
   fi
   if [ -n "$ocm_references" ]; then
     if [ ! -f "$ocm_references" ]; then
       error "$ocm_references not found"
     fi
-    echo $OCM add references "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_references"
-    $OCM add references "$ocm_componentdir" "${settings[@]}" COMPONENT_VERSION="$ocm_componentversion" COMPONENT_NAME="$ocm_component" "$ocm_references"
+    echo $OCM add references "$ocm_componentdir" "${settings[@]}" "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_references"
+    $OCM add references "$ocm_componentdir" "${settings[@]}" "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_references"
   fi
 }
 
@@ -215,6 +234,7 @@ addComponent()
     echo "Dir $ocm_componentdir not found adding resources"
     addResources
   fi
+  echo "Transfer CA to CTF"
   mkdir -p "$(dirname "$ocm_ctf")"
   $OCM transfer ca "$ocm_componentdir" "$ocm_ctf"
   echo "Transport Archive is $ocm_ctf"
