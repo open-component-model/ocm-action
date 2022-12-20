@@ -183,14 +183,14 @@ If no such option is given it looks for standard specification files (`ocm/resou
 If no component archive is specified (`directory`), it tries to use the default (`gen/ocm/component`),
 if this is not present, also, it tries to create it with `create_component`.
 
-An optional templater (`tenmplater`) can be used to process the specification files prior to evaluation.
+An optional templater (`templater`) can be used to process the specification files prior to evaluation.
 In this case the value settings are used ( `settings`or `var_values`).
 
 Standard values always provided:
 - **`VERSION`**: the specified or calculated version 
 - **`NAME`**: the specified or calculated component name. The default name is derived from the source repository. 
 
-## `add_component`
+### `add_component`
 
 This command can be used to create a transport archive and to add component versions. This could 
 either be a previously created component archive (`directory`) or the components are taken from
@@ -201,6 +201,11 @@ If no such description is found. It tries to use `add_resources`.
 
 An optional templater (`tenmplater`) can be used to process the specification file prior to evaluation.
 In this case the value settings are used ( `settings`or `var_values`).
+
+### `push_ctf`
+
+This command can be used to push the generated transport archive to an OCM repository. The default repoitory
+is the github OCI repository with the package name `<github org>/ocm`.
 
 ## Example usage
 
