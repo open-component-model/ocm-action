@@ -1,11 +1,19 @@
 #!/bin/bash -e
 
 WORKSPACE="${GITHUB_WORKSPACE:=/usr/local}"
+GEN="${ocm_gen:=gen/ocm}"
 AUTH=/tmp/config
 
 VERSIONFILE=${ocm_versionfile:=VERSION}
 REPO="$(git config --get remote.origin.url)"
 REPO="${REPO#https://}"
+REPO="${REPO#git@}"
+REPO="${REPO%.git}"
+REPO="${REPO/://}"
+
+if [ -z "$GITHUB_OUTPUT" ]; then
+  GITHUB_OUTPUT=".out"
+fi
 
 error()
 {
@@ -18,50 +26,56 @@ if [ -x bin/ocm ]; then
 else
   if [ -x "/usr/local/bin/ocm" ]; then
     OCM="/usr/local/bin/ocm"
-  fi
-  if ! which ocm >/dev/null; then
-    error ocm cli not found
+  else
+    if ! which ocm >/dev/null; then
+      error ocm cli not found
+    fi
+    OCM=ocm
   fi
 fi
+
+execute()
+{
+  echo "executing: $@"
+  "$@"
+}
 
 setOutput()
 {
   echo "$1=$@" >> $GITHUB_OUTPUT
 }
 
-getVersion()
-{
-  if [ -n "$ocm_versioncmd" ]; then
-    echo "determining component version with version command: $ocm_versioncmd"
-    ocm_componentversion="$($ocm_versioncmd)"
-  else
-    if [ -n "$ocm_componentversion" -a -f "$ocm_componentversion"  ]; then
-      VERSIONFILE="$ocm_componentversion"
-      ocm_componentversion=
-    fi
-    if [ -z "$ocm_componentversion" ]; then
-      if [ -x hack/component_version ]; then
-        echo "determining component version with version command: hack/component_version"
-        ocm_componentversion="$(hack/component_version)"
+if [ -n "$ocm_versioncmd" ]; then
+  echo "determining component version with version command: $ocm_versioncmd"
+  ocm_componentversion="$($ocm_versioncmd)"
+  def_componentversion=" (from version command)"
+else
+  if [ -n "$ocm_componentversion" -a -f "$ocm_componentversion"  ]; then
+    VERSIONFILE="$ocm_componentversion"
+    ocm_componentversion=
+  fi
+  if [ -z "$ocm_componentversion" ]; then
+    if [ -x hack/component_version ]; then
+      echo "determining component version with version command: hack/component_version"
+      ocm_componentversion="$(hack/component_version)"
+      def_componentversion=" (from command hack/component_version)"
+    else
+      versions=( $(git tag --points-at HEAD) )
+      echo found tags ${versions[@]}
+      if [ ${#versions} -gt 0 ]; then
+        echo "determining component version using git tags"
+        ocm_componentversion="${versions[0]}"
+        def_componentversion=" (defaulted by git tag)"
       else
-        versions=( $(git tag --points-at HEAD) )
-        echo found tags ${versions[@]}
-        if [ ${#versions} -gt 0 ]; then
-          echo "determining component version using git tags"
-          ocm_componentversion="${versions[0]}"
-        else
-          if [ -f "$VERSIONFILE" ]; then
-            echo "using component version from $VERSIONFILE file"
-            ocm_componentversion="$(cat "$VERSIONFILE")-$(git rev-parse --short HEAD)"
-          fi
+        if [ -f "$VERSIONFILE" ]; then
+          echo "using component version from $VERSIONFILE file"
+          ocm_componentversion="$(cat "$VERSIONFILE")-$(git rev-parse --short HEAD)"
+          def_componentversion=" (from version file $VERSIONFILE)"
         fi
       fi
     fi
   fi
-  if [ -z "$ocm_componentversion" ]; then
-    error no component version found
-  fi
-}
+fi
 
 creds=( )
 createAuth()
@@ -89,25 +103,37 @@ createAuth()
   creds=( --cred :type=OCIRegistry --cred ":hostname=$repohost" --cred "username=$ocm_comprepouser" --cred "password=$ocm_comprepopassword" )
 }
 
+def_ctf=
+def_componentdir=
+def_component=
 if [ -z "$ocm_ctf" ]; then
-  ocm_ctf="gen/ocm/transport.ctf"
+  ocm_ctf="$GEN/transport.ctf"
+  def_ctf=" (defaulted)"
 fi
 if [ -z "$ocm_componentdir" ]; then
-  ocm_componentdir="gen/ocm/component"
+  ocm_componentdir="$GEN/component"
+  def_componentdir=" (defaulted)"
+fi
+if [ -z "$ocm_component" ]; then
+  ocm_component="$REPO"
+  def_component=" (defaulted from repository)"
 fi
 
 echo "WORKSPACE:     $WORKSPACE"
 echo "REPO:          $REPO"
 echo "ACTION:        $1"
-echo "COMPONENT_DIR: $ocm_componentdir"
-echo "COMPONENT:     $ocm_component"
+echo "GENDIR:        $GEN"
+echo "COMPONENT:     $ocm_component$def_component"
 echo "PROVIDER:      $ocm_provider"
 echo "DESCRIPTOR:    $ocm_descriptor"
 echo "VERSION_CMD:   $ocm_versioncmd"
-echo "VERSION:       $ocm_componentversion"
+echo "VERSION:       $ocm_componentversion$def_componentversion"
 echo "TEMPLATER:     $ocm_templater"
 echo "RESOURCES:     $ocm_resources"
-echo "CTF:           $ocm_ctf"
+echo "COMPONENTS:    $ocm_components"
+echo "TEMPLATER:     $ocm_templater"
+echo "COMPONENT_DIR: $ocm_componentdir$def_componentdir"
+echo "CTF:           $ocm_ctf$def_ctf"
 echo "COMPREPO:      $ocm_comprepo"
 echo "COMPREPO_USER: $ocm_comprepouser"
 if [ -n "$ocm_comprepopassword" ]; then
@@ -120,17 +146,12 @@ createComponent()
   if [ -z "$ocm_provider" ]; then
     error provider required
   fi
-  if [ -z "$ocm_component" ]; then
-    ocm_component="$REPO"
+  if [ -z "$ocm_componentversion" ]; then
+    error no component version found
   fi
   mkdir -p "$(dirname "$ocm_componentdir")"
-  getVersion
-  if [ -z "$ocm_component" ]; then
-    ocm_component="$REPO"
-  fi
   echo "Creating component archive for $ocm_component version $ocm_componentversion"
-  echo "$OCM create ca --file $ocm_componentdir $ocm_component $ocm_componentversion --provider $ocm_provider"
-  $OCM create ca --file "$ocm_componentdir" "$ocm_component" $ocm_componentversion --provider "$ocm_provider"
+  execute $OCM create ca --file "$ocm_componentdir" "$ocm_component" $ocm_componentversion --provider "$ocm_provider"
 
   cat >/tmp/sources <<EOF
 name: 'project'
@@ -141,7 +162,7 @@ access:
   commit: $(git rev-parse HEAD)
 version: $ocm_componentversion
 EOF
-  $OCM add sources "$ocm_componentdir" /tmp/sources
+  execute $OCM add sources "$ocm_componentdir" /tmp/sources
 }
 
 printDescriptor()
@@ -154,54 +175,32 @@ printDescriptor()
   setOutput component-path "$ocm_componentdir"
 }
 
-addResources()
+prepareSettings()
 {
-  if [ ! -e "$ocm_componentdir" ]; then
-    echo "Dir $ocm_componentdir not found creating component"
-    createComponent
-  fi
-  if [ -z "$ocm_resources" ]; then
-    if [ -f "gen/ocm/resources.yaml" ]; then
-      ocm_resources=gen/ocm/resources.yaml
-    else
-      if [ -f "ocm/resources.yaml" ]; then
-        ocm_resources=ocm/resources.yaml
-      fi
-    fi
-  fi
-  if [ -z "$ocm_references" ]; then
-    if [ -f "gen/ocm/references.yaml" ]; then
-      ocm_references=gen/ocm/references.yaml
-    else
-      if [ -f "ocm/resources.yaml" ]; then
-        ocm_references=ocm/references.yaml
-      fi
-    fi
-  fi
   if [ -z "$ocm_settings" ]; then
-    if [ -f gen/ocm/settings.yaml ]; then
-      ocm_settings=gen/ocm/settings.yaml
+    if [ -f "$GEN/settings.yaml" ]; then
+      ocm_settings="$GEN/settings.yaml"
     else
       if [ -f "ocm/settings.yaml" ]; then
         ocm_settings=ocm/settings.yaml
       fi
     fi
   fi
-  settings=( )
+  settings=( VERSION="$ocm_componentversion" NAME="$ocm_component" )
   if [ -n "$ocm_var_values" ]; then
     if [ -n "$ocm_settings" ]; then
       error "Use either settings or ocm_values but not both"
     fi
-    echo "${ocm_var_values}" > gen/ocm/settings.yaml
-    settings=( --settings "gen/ocm/settings.yaml" )
+    echo "${ocm_var_values}" > "$GEN/settings.yaml"
+    settings=( "${settings[@]}" --settings "$GEN/settings.yaml" )
     echo "Variables used for templating:"
-    cat gen/ocm/settings.yaml
+    cat "$GEN/settings.yaml"
   else
     if [ -n "$ocm_settings" ]; then
       if [ ! -f "$ocm_settings" ]; then
         error settings file "$ocm_settings" not found
       fi
-      settings=( --settings "$ocm_settings" )
+      settings=( "${settings[@]}"  --settings "$ocm_settings" )
     fi
   fi
 
@@ -209,6 +208,33 @@ addResources()
   if [ -n "$ocm_templater" ]; then
     templater=( --templater "$ocm_templater" )
   fi
+}
+
+addResources()
+{
+  if [ ! -e "$ocm_componentdir" ]; then
+    echo "Dir $ocm_componentdir not found creating component"
+    createComponent
+  fi
+  if [ -z "$ocm_resources" ]; then
+    if [ -f "$GEN/resources.yaml" ]; then
+      ocm_resources="$GEN/resources.yaml"
+    else
+      if [ -f "ocm/resources.yaml" ]; then
+        ocm_resources=ocm/resources.yaml
+      fi
+    fi
+  fi
+  if [ -z "$ocm_references" ]; then
+    if [ -f "$GEN/references.yaml" ]; then
+      ocm_references="$GEN/references.yaml"
+    else
+      if [ -f "ocm/resources.yaml" ]; then
+        ocm_references=ocm/references.yaml
+      fi
+    fi
+  fi
+  prepareSettings
   if [ -z "$ocm_resources" -a -z "$ocm_references" ]; then
     error "no resources.yaml or references.yaml found"
   fi
@@ -216,28 +242,59 @@ addResources()
     if [ ! -f "$ocm_resources" ]; then
       error "$ocm_resources not found"
     fi
-    echo $OCM add resources "$ocm_componentdir" "${settings[@]}" "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_resources"
-    $OCM add resources "$ocm_componentdir" "${settings[@]}"  "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_resources"
+    execute $OCM add resources "$ocm_componentdir" "${settings[@]}"  "${templater[@]}" "$ocm_resources"
   fi
   if [ -n "$ocm_references" ]; then
     if [ ! -f "$ocm_references" ]; then
       error "$ocm_references not found"
     fi
-    echo $OCM add references "$ocm_componentdir" "${settings[@]}" "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_references"
-    $OCM add references "$ocm_componentdir" "${settings[@]}" "${templater[@]}" VERSION="$ocm_componentversion" NAME="$ocm_component" "$ocm_references"
+    execute $OCM add references "$ocm_componentdir" "${settings[@]}" "${templater[@]}" "$ocm_references"
   fi
 }
 
 addComponent()
 {
-  if [ ! -d "$ocm_componentdir" ]; then
-    echo "Dir $ocm_componentdir not found adding resources"
-    addResources
+  if [ -z "$ocm_components"  -a ! -d "$ocm_componentdir" ]; then
+    # check for implicit components.yaml
+    if [ -f "$GEN/components.yaml" ]; then
+      ocm_components="$GEN/components.yaml"
+    else
+      if [ -f "ocm/components.yaml" ]; then
+        ocm_components=ocm/components.yaml
+      fi
+    fi
   fi
-  echo "Transfer CA to CTF"
-  mkdir -p "$(dirname "$ocm_ctf")"
-  $OCM transfer ca "$ocm_componentdir" "$ocm_ctf"
-  echo "Transport Archive is $ocm_ctf"
+
+  if [ -z "$ocm_components" ]; then
+    echo "No component specification found: adding component by component archive $ocm_componentdir"
+    # if no component specifications are found try to use component archive
+    if [ ! -d "$ocm_componentdir" ]; then
+      echo "Dir $ocm_componentdir not found: adding resources"
+      addResources
+    fi
+    echo "Transfer CA to CTF"
+    mkdir -p "$(dirname "$ocm_ctf")"
+    execute $OCM transfer ca "$ocm_componentdir" "$ocm_ctf"
+    echo "Transport Archive is $ocm_ctf"
+  else
+    echo "Adding component versions from $ocm_components" to CTF
+    prepareSettings
+    if [ ! -f "$ocm_components" ]; then
+      error "$ocm_components not found"
+    fi
+    flags=""
+    if [ -n "$ocm_cleanup" ]; then
+      flags="f"
+    fi
+    if [ ! -e "$ocm_ctf" ]; then
+      flags="c"
+    fi
+    if [ -n "$flags" ]; then
+      flags="-$flags"
+    fi
+    mkdir -p "$(dirname "$ocm_ctf")"
+    execute $OCM add components $flags --file "$ocm_ctf" "${settings[@]}"  "${templater[@]}" "$ocm_components"
+  fi
   setOutput transport-archive "$ocm_ctf"
 }
 
@@ -250,8 +307,7 @@ pushCTF()
   fi
   echo "Transport Archive is $ocm_ctf"
   echo "Component Repository is $ocm_comprepo"
-  echo $OCM "${creds[@]}" transfer ctf "$ocm_ctf" "$ocm_comprepo"
-  $OCM "${creds[@]}" transfer ctf "$ocm_ctf" "$ocm_comprepo"
+  execute $OCM "${creds[@]}" transfer ctf "$ocm_ctf" "$ocm_comprepo"
   setOutput transport-archive "$ocm_ctf"
 }
 

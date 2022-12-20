@@ -23,9 +23,13 @@ Possible actions are
 |Action|Meaning|Inputs|
 |------|-------|------|
 |`create_component`|create a component folder with component descriptor| `directory`, `component`, `version`, `provider` |
-|`add_resources`|add resources/references to an already existing or new component| `directory`, `component`, `version`, `provider`, `resources`, `references`, `settigs` |
-|`add_component`|add a component to an extisting or new transport archive| `directory`, `ctf` |
+|`add_resources`|add resources/references to an already existing or new component| `directory`, `component`, `version`, `provider`, `resources`, `references`, `templater`, `settings`, `var_values` |
+|`add_component`|add component(s) to an extisting or new transport archive| `directory`, `ctf`, `components`, `templater`, `settings`, `var_values` |
 |`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `comprepo_user`, `comprepo_password` |
+
+### `gen` (default `gen/ocm`)
+
+The generation folder to use. The folder is created if not present. THis folder is used for all commands.
 
 ### `directory`
 
@@ -69,6 +73,13 @@ the sources provide a static file.
 
 **Optional** The reference specification file describing the references to add.
 If not specified it checks for `gen/ocm/references.yaml` and `ocm/references.yaml`.
+With this a previous build step can create this file under the `gen` folder or
+the sources provide a static file.
+
+### `components`
+
+**Optional** The component specification file describing the compoenents to add.
+If not specified it checks for `gen/ocm/components.yaml` and `ocm/components.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
@@ -117,7 +128,7 @@ The optional provider of the component. Required for create action otherwise ign
 
 ### `templater`
 
-Templater engine used to expand resources and references (spiff, go or subst) optional
+Templater engine used to expand components, resources and references (spiff, go or subst) optional
 
 ### `settings`
 
@@ -150,6 +161,51 @@ Example:
       PLATFORMS: "linux/amd64 linux/arm64"
     ...
 ```
+
+## Commands
+
+### `create_component`
+
+This commands creates a component archive, which can be enriched later by resources or references.
+Alternatively, components can be completely described by a component specifivarion file (`components`)
+and added directly to a transport archive with `add_components`.
+
+### `add_resources`
+
+This command can be used to add resources and/or references to a component archive.
+The component version composed this way can then be added to a transport archive with `add_component`.
+Alternatively, components can be completely described by a component specifivarion file (`components`)
+and added directly to a transport archive with `add_components`.
+
+It uses a resources specification file (`resources`) and a references specification file (`references`).
+If no such option is given it looks for standard specification files (`ocm/resources.yaml`, `gen/ocm/resources.yaml`,
+`ocm/references.yaml` and `gen/ocm/references.yaml`). 
+If no component archive is specified (`directory`), it tries to use the default (`gen/ocm/component`),
+if this is not present, also, it tries to create it with `create_component`.
+
+An optional templater (`templater`) can be used to process the specification files prior to evaluation.
+In this case the value settings are used ( `settings`or `var_values`).
+
+Standard values always provided:
+- **`VERSION`**: the specified or calculated version 
+- **`NAME`**: the specified or calculated component name. The default name is derived from the source repository. 
+
+### `add_component`
+
+This command can be used to create a transport archive and to add component versions. This could 
+either be a previously created component archive (`directory`) or the components are taken from
+a description file (`components`).
+
+If no source is specified it looks for defaulr descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`. 
+If no such description is found. It tries to use `add_resources`.
+
+An optional templater (`tenmplater`) can be used to process the specification file prior to evaluation.
+In this case the value settings are used ( `settings`or `var_values`).
+
+### `push_ctf`
+
+This command can be used to push the generated transport archive to an OCM repository. The default repoitory
+is the github OCI repository with the package name `<github org>/ocm`.
 
 ## Example usage
 

@@ -4,6 +4,10 @@ inputs:
   action:
     description: 'action to execute'
     required: true
+  gen:
+    description: 'generation directory'
+    required: false
+    default: gen/ocm
   component:
     description: 'component name'
     required: false
@@ -26,14 +30,20 @@ inputs:
     description: 'ctf file path'
     required: false
     default: 'gen/ocm/ctf'
-  settings:
-    description: 'settings file for resource add commands'
-    required: false
   var_values:
     description: 'variable values (in yaml syntax) passed to templater'
     required: false
   resources:
     description: 'resource specification'
+    required: false
+  references:
+    description: 'reference specification'
+    required: false
+  components:
+    description: 'component specification'
+    required: false
+  settings:
+    description: 'settings file for resource add commands'
     required: false
   templater:
     description: 'Templater used for processing input files'
@@ -63,9 +73,12 @@ runs:
   steps:
   - shell: bash
     env:
+      ocm_gen: ${{ inputs.gen }}
       ocm_settings: ${{ inputs.settings }}
       ocm_var_values: ${{ inputs.var_values }}
       ocm_resources: ${{ inputs.resources }}
+      ocm_references: ${{ inputs.references }}
+      ocm_components: ${{ inputs.components }}
       ocm_ctf: ${{ inputs.ctf }}
       ocm_component: ${{ inputs.component }}
       ocm_versioncmd: ${{ inputs.version_cmd }}
