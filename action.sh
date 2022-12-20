@@ -192,7 +192,7 @@ prepareSettings()
       error "Use either settings or ocm_values but not both"
     fi
     echo "${ocm_var_values}" > "$GEN/settings.yaml"
-    settings=( --settings "$GEN/settings.yaml" )
+    settings=( "${settings[@]}" --settings "$GEN/settings.yaml" )
     echo "Variables used for templating:"
     cat "$GEN/settings.yaml"
   else
@@ -200,7 +200,7 @@ prepareSettings()
       if [ ! -f "$ocm_settings" ]; then
         error settings file "$ocm_settings" not found
       fi
-      settings=( --settings "$ocm_settings" )
+      settings=( "${settings[@]}"  --settings "$ocm_settings" )
     fi
   fi
 
