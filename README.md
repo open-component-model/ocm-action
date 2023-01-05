@@ -90,7 +90,7 @@ the sources provide a static file.
 ### `comprepo_url`
 
 **Optional for** `push_ctf`. The base URL for the used component repository.
-For example `https://ghcr.io/mandelsoft/cnudie`. The default is the sub repo `ocm` of
+For example `ghcr.io/mandelsoft/ocm`. The default is the sub repo `ocm` of
 the organization of the built repository.
 
 ### `comprepo_user`
