@@ -135,6 +135,7 @@ echo "TEMPLATER:     $ocm_templater"
 echo "COMPONENT_DIR: $ocm_componentdir$def_componentdir"
 echo "CTF:           $ocm_ctf$def_ctf"
 echo "COMPREPO:      $ocm_comprepo"
+echo "FORCE_PUSH:    $ocm_force"
 echo "COMPREPO_USER: $ocm_comprepouser"
 if [ -n "$ocm_comprepopassword" ]; then
   echo "::add-mask::$ocm_comprepopassword"
@@ -306,9 +307,13 @@ pushCTF()
   if [ ! -d "$ocm_ctf" ]; then
     addComponent
   fi
+  flags=""
+  if [ "$ocm_force" = true ]; then
+    flags="--overwrite"
+  fi
   echo "Transport Archive is $ocm_ctf"
   echo "Component Repository is $ocm_comprepo"
-  execute $OCM "${creds[@]}" transfer ctf "$ocm_ctf" "$ocm_comprepo"
+  execute $OCM "${creds[@]}" transfer ctf $flags "$ocm_ctf" "$ocm_comprepo"
   setOutput transport-archive "$ocm_ctf"
 }
 
