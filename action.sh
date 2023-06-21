@@ -186,6 +186,7 @@ prepareSettings()
       fi
     fi
   fi
+  mkdir -p $GEN
   settings=( VERSION="$ocm_componentversion" NAME="$ocm_component" )
   if [ -n "$ocm_var_values" ]; then
     if [ -n "$ocm_settings" ]; then
