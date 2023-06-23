@@ -3,9 +3,7 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/open-component-model/ocm-action)](https://api.reuse.software/info/github.com/open-component-model/ocm-action)
 
 
-This action installs a dedicated version of the OCM tool and executes the
-operation specified with the `action` input.
-All paths are evaluated relative to the workdir.
+This action installs the OCM tool and executes the operation specified with the `action` input. All paths are evaluated relative to the workdir.
 
 ## Prerequisites
 
@@ -215,21 +213,43 @@ is the github OCI repository with the package name `<github org>/ocm`.
 
 ## Example usage
 
-The following example assumes a project with a dockerfile building images for two different platforms.
-It uses the `buildx` plugin and the `ocm-action` plugin to create and upload a component-version and
-attach the common-tansport-archive as build artifact.
+### Using resources.yaml
 
+The following example assumes a project with a dockerfile building images for two different platforms. It uses the `buildx` plugin and the `ocm-action` plugin to create and upload a component-version and attach the common-tansport-archive as build artifact. The version number of the component is taken from a file named `VERSION`.
+
+Note that docker is used two build single platform images and ocm is used to build and push a multi-platform image from the single-platform images. The `create-component` action will automatically add a `source` element to the component descriptor referring to the current github repository.
+
+`resources.yaml`:
+
+```yaml
+---
+name: chart
+type: helmChart
+input:
+  type: helm
+  path: helmchart
+---
+name: image
+type: ociImage
+version: ${VERSION}
+input:
+  type: "dockermulti"
+  repository: ${IMAGE}
+  variants: ${VARIANTS}
 ```
-name: build-and-ocm
-# trigger manually
-run-name: Build image and create component version
-on:
+
+
+Github action:
+
+```yaml
+name: ocm-resources
+run-name: Build component version using resources.yaml
   workflow_dispatch:
 env:
-  VERSION: "1.0.0"
   COMP_NAME: acme.org/simpleserver
   PROVIDER: github.com/acme
   CD_REPO: ghcr.io/acme/ocm
+  OCI_URL: ghcr.io/acme
 jobs:
   build-and-create-ocm:
     runs-on: ubuntu-latest
@@ -249,6 +269,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
         with:
           version: latest
+      - name: Get version from file
+        run: |
+          version=`cat VERSION`
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "Using version: $version"
       - name: Build amd64
         id: build_amd64
         uses: docker/build-push-action@v3
@@ -256,7 +281,7 @@ jobs:
           push: false
           load: true
           platforms: linux/amd64
-          tags: ghcr.io/acme/simpleserver:${{ env.VERSION }}-linux-amd64
+          tags: ${{ env.OCI_URL }}/${{ env.COMP_NAME }}:${{ env.VERSION }}-linux-amd64
       - name: Build arm64
         id: build_arm64
         uses: docker/build-push-action@v3
@@ -264,7 +289,7 @@ jobs:
           push: false
           load: true
           platforms: linux/arm64
-          tags: ghcr.io/acme/simpleserver:${{ env.VERSION }}-linux-arm64
+          tags: ${{ env.OCI_URL }}/${{ env.COMP_NAME }}:${{ env.VERSION }}-linux-arm64
       - name: create OCM component version
         uses: open-component-model/ocm-action@main
         with:
@@ -278,30 +303,151 @@ jobs:
           action: add_resources
           component: ${{ env.COMP_NAME }}
           resources: resources.yaml
-          templater: spiff
           version: ${{ env.VERSION }}
+          # Note below that you have to use double quotes for the VARIANTS value.
           var_values: |
-            MULTI: true
-            IMAGE: ghcr.io/acme/simpleserver:${{ env.VERSION }}
-            PLATFORMS: "linux/amd64 linux/arm64"
+            IMAGE: ${{ env.OCI_URL }}/${{ env.COMP_NAME }}
+            VARIANTS: "['${{ env.OCI_URL }}/${{ env.COMP_NAME }}:${{ env.VERSION }}-linux-amd64', '${{ env.OCI_URL }}/${{ env.COMP_NAME }}:${{ env.VERSION }}-linux-arm64']"
       - name: create OCM transport archive
         uses: open-component-model/ocm-action@main
         with:
           action: add_component
-          ctf: gen/ctf
-      - name: push CTF
+      - name: push OCM transport archive
         uses: open-component-model/ocm-action@main
         with:
           action: push_ctf
-          comprepo_url: ${{ env.CD_REPO}}
+          # Warning: use force_push only for development (overwrites existing components)!
+          force_push: true
           comprepo_password: ${{ secrets.GITHUB_TOKEN }}
+          comprepo_url: ${{ env.CD_REPO }}
       - name: Upload transport archive
         uses: actions/upload-artifact@v3
         with:
           name: ocm-simpleserver-ctf.zip
           path: |
-            gen/ctf
+            gen/ocm/ctf
+```
 
+
+### Using components.yaml
+
+The following example assumes a project with a dockerfile building images for two different platforms. It uses the `buildx` plugin build and push the image to an OCI registry. It uses the `ocm-action` plugin to create and upload a component-version and attach the common-tansport-archive as build artifact. The version number of the component is taken from a file named `VERSION`.
+
+The file `component.yaml` contains all the information needed to create the component-descriptor. The `add_component` action will not automatically add a `source` element to the component descriptor. You have to provide the `source` element yourself if needed.
+
+`components.yaml`:
+
+```yaml
+components:
+- name: ${COMP_NAME}
+  version: ${VERSION}
+  provider:
+    name: ${PROVIDER}
+  sources:
+  - name: source
+    type: filesystem
+    version: ${VERSION}
+    access:
+      type: gitHub
+      repoUrl: ${REPO_URL}
+      commit: ${COMMIT}
+  resources:
+  - name: chart
+    type: helmChart
+    input:
+      type: helm
+      path: helmchart
+  - name: ocm-image
+    type: ociImage
+    version: ${VERSION}
+    access:
+      type: ociArtifact
+      imageReference: ${IMAGE}:${VERSION}
+```
+
+Github action:
+
+```yaml
+name: ocm-components
+run-name: Build component version using component.yaml
+on:
+  workflow_dispatch:
+env:
+  COMP_NAME: acme.org/simpleserver
+  PROVIDER: github.com/acme
+  CD_REPO: ghcr.io/acme/ocm
+  OCI_URL: ghcr.io/acme
+jobs:
+  build-and-create-ocm:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      # setup workflow to use the OCM github action:
+      - name: setup OCM
+        uses: open-component-model/ocm-setup-action@main
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Context for Buildx
+        id: buildx-context
+        run: |
+          docker context create builders
+      - name: Set up Docker Buildx
+        timeout-minutes: 5
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get version from file
+        run: |
+          version=`cat VERSION`
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "Using version: $version"
+      - name: Build amd64 and arm64
+        id: build_amd64
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.OCI_URL }}/${{ env.COMP_NAME }}:${{ env.VERSION }}
+      # Create a common transport format (CTF) archive including the component descriptor:
+      - name: create OCM CTF
+        uses: open-component-model/ocm-action@main
+        with:
+          action: add_component
+          components: components.yaml
+          directory: .
+          version: ${{ env.VERSION }}
+          var_values: |
+            COMMIT: ${{ github.sha }}
+            COMP_NAME: ${{ env.COMP_NAME }}
+            IMAGE: ${{ env.OCI_URL }}/${{ env.COMP_NAME }}
+            PROVIDER: ${{ env.PROVIDER }}
+            REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+            VERSION: ${{ env.VERSION}}
+      # Optional: push the component to an OCI registry
+      - name: push CTF
+        uses: open-component-model/ocm-action@main
+        with:
+          action: push_ctf
+          comprepo_url: ${{ env.CD_REPO}}
+          # Warning: use force_push only for development (overwrites existing components)!
+          force_push: true
+          comprepo_password: ${{ secrets.GITHUB_TOKEN }}
+      # Optional: attach the common transport format archive to the workflow run
+      - name: Upload transport archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ocm-simpleserver-ctf.zip
+          path: |
+            gen/ocm/ctf
 ```
 
 ## Licensing
