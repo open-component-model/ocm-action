@@ -57,6 +57,9 @@ inputs:
   comprepo_password:
     description: component repository password
     required: false
+  force_push:
+    description: push a ctf to target location even if it exists
+    required: false
 outputs:
   component-name:
     description: 'component name'
@@ -90,6 +93,7 @@ runs:
       ocm_comprepo: ${{ inputs.comprepo_url }}
       ocm_comprepouser: ${{ inputs.comprepo_user }}
       ocm_comprepopassword: ${{ inputs.comprepo_password }}
+      ocm_force:  ${{ inputs.force_push }}
     run: |
       echo "path: ${{ github.action_path }}"
       "${{ github.action_path }}/action.sh" "${{ inputs.action }}"

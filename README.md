@@ -25,7 +25,7 @@ Possible actions are
 |`create_component`|create a component folder with component descriptor| `directory`, `component`, `version`, `provider` |
 |`add_resources`|add resources/references to an already existing or new component| `directory`, `component`, `version`, `provider`, `resources`, `references`, `templater`, `settings`, `var_values` |
 |`add_component`|add component(s) to an extisting or new transport archive| `directory`, `ctf`, `components`, `templater`, `settings`, `var_values` |
-|`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `comprepo_user`, `comprepo_password` |
+|`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `force_push`, `comprepo_user`, `comprepo_password` |
 
 ### `gen` (default `gen/ocm`)
 
@@ -98,11 +98,17 @@ the organization of the built repository.
 **Optional for** `push_ctf`. The username used to access the component repository.
 The default is the owner of the actually built repository.
 
+### `force_push`
+
+**Optional for** `push_ctf`. Set to `true` to allow overwriting existing versions. If not set and
+the component exists the transfer will be skipped. Use this option carefully (mostly during
+development).
+
 ### `comprepo_password`
 
 **Required for** `push_ctf`. The password used to access the component repository.
-The default is the GITHUB_TOKEN environment variable of the actually built repository.
-It requires packages write permission.
+For publishing to the github packages of the org of the current repository set this to
+${{ secrets.GITHUB_TOKEN }}. It requires packages write permission.
 
 ## Outputs
 
@@ -179,7 +185,7 @@ and added directly to a transport archive with `add_components`.
 
 It uses a resources specification file (`resources`) and a references specification file (`references`).
 If no such option is given it looks for standard specification files (`ocm/resources.yaml`, `gen/ocm/resources.yaml`,
-`ocm/references.yaml` and `gen/ocm/references.yaml`). 
+`ocm/references.yaml` and `gen/ocm/references.yaml`).
 If no component archive is specified (`directory`), it tries to use the default (`gen/ocm/component`),
 if this is not present, also, it tries to create it with `create_component`.
 
@@ -187,16 +193,16 @@ An optional templater (`templater`) can be used to process the specification fil
 In this case the value settings are used ( `settings`or `var_values`).
 
 Standard values always provided:
-- **`VERSION`**: the specified or calculated version 
-- **`NAME`**: the specified or calculated component name. The default name is derived from the source repository. 
+- **`VERSION`**: the specified or calculated version
+- **`NAME`**: the specified or calculated component name. The default name is derived from the source repository.
 
 ### `add_component`
 
-This command can be used to create a transport archive and to add component versions. This could 
+This command can be used to create a transport archive and to add component versions. This could
 either be a previously created component archive (`directory`) or the components are taken from
 a description file (`components`).
 
-If no source is specified it looks for defaulr descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`. 
+If no source is specified it looks for defaulr descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`.
 If no such description is found. It tries to use `add_resources`.
 
 An optional templater (`tenmplater`) can be used to process the specification file prior to evaluation.
@@ -223,6 +229,7 @@ env:
   VERSION: "1.0.0"
   COMP_NAME: acme.org/simpleserver
   PROVIDER: github.com/acme
+  CD_REPO: ghcr.io/acme/ocm
 jobs:
   build-and-create-ocm:
     runs-on: ubuntu-latest
@@ -282,6 +289,12 @@ jobs:
         with:
           action: add_component
           ctf: gen/ctf
+      - name: push CTF
+        uses: open-component-model/ocm-action@main
+        with:
+          action: push_ctf
+          comprepo_url: ${{ env.CD_REPO}}
+          comprepo_password: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload transport archive
         uses: actions/upload-artifact@v3
         with:
