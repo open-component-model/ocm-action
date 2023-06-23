@@ -27,7 +27,7 @@ Possible actions are
 
 ### `gen` (default `gen/ocm`)
 
-The generation folder to use. The folder is created if not present. THis folder is used for all commands.
+The generation folder to use. The folder is created if not present. This folder is used for all commands.
 
 ### `directory`
 
@@ -106,7 +106,7 @@ development).
 
 **Required for** `push_ctf`. The password used to access the component repository.
 For publishing to the github packages of the org of the current repository set this to
-${{ secrets.GITHUB_TOKEN }}. It requires packages write permission.
+`${{ secrets.GITHUB_TOKEN }}`. It requires packages write permission.
 
 ## Outputs
 
@@ -132,19 +132,18 @@ The optional provider of the component. Required for create action otherwise ign
 
 ### `templater`
 
-Templater engine used to expand components, resources and references (spiff, go or subst) optional
+Template engine used to expand components, resources and references (spiff, go or subst) optional
 
 ### `settings`
 
-Path to a file containing the variable values when expanding template variables. yaml file
-with syntax:
+Path to a file containing the variable values when expanding template variables (yaml syntax). Use eiher `settings` or `var_values`.
+
+Example:
 
 ```yaml
 MY_VAR: my_value
 MY_OTHER_VAR: my_value_2
 ```
-
-Use eiher `settings` or `var_values`.
 
 ### `var_values`
 
@@ -153,7 +152,7 @@ Use eiher `settings` or `var_values`.
 
 Example:
 
-```
+```yaml
 ...
 - name: add OCM resources
   uses: open-component-model/ocm-action
@@ -170,25 +169,25 @@ Example:
 
 ### `create_component`
 
-This commands creates a component archive, which can be enriched later by resources or references.
-Alternatively, components can be completely described by a component specifivarion file (`components`)
+This commands creates a component archive, which can be enriched later by resources and references.
+Alternatively, components can be completely described by a component specification file (`components`)
 and added directly to a transport archive with `add_components`.
 
 ### `add_resources`
 
 This command can be used to add resources and/or references to a component archive.
 The component version composed this way can then be added to a transport archive with `add_component`.
-Alternatively, components can be completely described by a component specifivarion file (`components`)
+Alternatively, components can be completely described by a component specification file (`components`)
 and added directly to a transport archive with `add_components`.
 
 It uses a resources specification file (`resources`) and a references specification file (`references`).
 If no such option is given it looks for standard specification files (`ocm/resources.yaml`, `gen/ocm/resources.yaml`,
 `ocm/references.yaml` and `gen/ocm/references.yaml`).
 If no component archive is specified (`directory`), it tries to use the default (`gen/ocm/component`),
-if this is not present, also, it tries to create it with `create_component`.
+if this is also not present it tries to create it with `create_component`.
 
 An optional templater (`templater`) can be used to process the specification files prior to evaluation.
-In this case the value settings are used ( `settings`or `var_values`).
+In this case the value settings are used (`settings` or `var_values`).
 
 Standard values always provided:
 - **`VERSION`**: the specified or calculated version
@@ -200,15 +199,15 @@ This command can be used to create a transport archive and to add component vers
 either be a previously created component archive (`directory`) or the components are taken from
 a description file (`components`).
 
-If no source is specified it looks for defaulr descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`.
+If no source is specified it looks for default descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`.
 If no such description is found. It tries to use `add_resources`.
 
-An optional templater (`tenmplater`) can be used to process the specification file prior to evaluation.
-In this case the value settings are used ( `settings`or `var_values`).
+An optional templater (`templater`) can be used to process the specification file prior to evaluation.
+In this case the value settings are used (`settings` or `var_values`).
 
 ### `push_ctf`
 
-This command can be used to push the generated transport archive to an OCM repository. The default repoitory
+This command can be used to push the generated transport archive to an OCM repository. The default repository
 is the github OCI repository with the package name `<github org>/ocm`.
 
 ## Example usage
@@ -237,7 +236,6 @@ input:
   repository: ${IMAGE}
   variants: ${VARIANTS}
 ```
-
 
 Github action:
 
@@ -327,7 +325,6 @@ jobs:
           path: |
             gen/ocm/ctf
 ```
-
 
 ### Using components.yaml
 
@@ -452,6 +449,6 @@ jobs:
 
 ## Licensing
 
-Copyright 2022 SAP SE or an SAP affiliate company and Open Component Model contributors.
+Copyright 2022-2023 SAP SE or an SAP affiliate company and Open Component Model contributors.
 Please see our [LICENSE](LICENSE) for copyright and license information.
 Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/open-component-model/ocm-action).
