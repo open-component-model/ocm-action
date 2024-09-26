@@ -1,7 +1,6 @@
-# Open Component Model action
+# GitHub action for the Open Component Model
 
 [![REUSE status](https://api.reuse.software/badge/github.com/open-component-model/ocm-action)](https://api.reuse.software/info/github.com/open-component-model/ocm-action)
-
 
 This action installs the OCM tool and executes the operation specified with the `action` input. All paths are evaluated relative to the workdir.
 
