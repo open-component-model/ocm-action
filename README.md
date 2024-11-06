@@ -76,7 +76,7 @@ the sources provide a static file.
 ### `components`
 
 **Optional** The component specification file describing the compoenents to add.
-If not specified it checks for `gen/ocm/components.yaml` and `ocm/components.yaml`.
+If not specified it checks for `gen/ocm/component-constructor.yaml` and `ocm/component-constructor.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
@@ -198,7 +198,7 @@ This command can be used to create a transport archive and to add component vers
 either be a previously created component archive (`directory`) or the components are taken from
 a description file (`components`).
 
-If no source is specified it looks for default descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`.
+If no source is specified it looks for default descriptions in `gen/ocm/component-constructor.yaml` or `ocm/component-constructor.yaml`.
 If no such description is found. It tries to use `add_resources`.
 
 An optional templater (`templater`) can be used to process the specification file prior to evaluation.
@@ -325,13 +325,13 @@ jobs:
             gen/ocm/ctf
 ```
 
-### Using components.yaml
+### Using component-constructor.yaml
 
 The following example assumes a project with a dockerfile building images for two different platforms. It uses the `buildx` plugin build and push the image to an OCI registry. It uses the `ocm-action` plugin to create and upload a component-version and attach the common-tansport-archive as build artifact. The version number of the component is taken from a file named `VERSION`.
 
 The file `component.yaml` contains all the information needed to create the component-descriptor. The `add_component` action will not automatically add a `source` element to the component descriptor. You have to provide the `source` element yourself if needed.
 
-`components.yaml`:
+`component-constructor.yaml`:
 
 ```yaml
 components:
@@ -418,7 +418,7 @@ jobs:
         uses: open-component-model/ocm-action@main
         with:
           action: add_component
-          components: components.yaml
+          components: component-constructor.yaml
           directory: .
           version: ${{ env.VERSION }}
           var_values: |
