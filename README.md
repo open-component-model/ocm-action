@@ -75,7 +75,7 @@ the sources provide a static file.
 
 ### `components`
 
-**Optional** The component specification file describing the compoenents to add.
+**Optional** The component specification file describing the components to add.
 If not specified it checks for `gen/ocm/component-constructor.yaml` and `ocm/component-constructor.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
