@@ -34,7 +34,7 @@ Will be defaulted to `gen/ocm/component`, if input is required by action.
 
 The directory to generate the component information
 
-### component (optional)
+### `component` (optional)
 
 The component name. If not given the component name is derived from
 the source repository.
