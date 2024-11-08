@@ -11,7 +11,7 @@ This can be done with the action [`open-component-model/ocm-setup-action`](https
 
 ## Inputs
 
-### `action`
+**`action`**
 
 **Required** The action to execute.
 
@@ -24,120 +24,120 @@ Possible actions are
 |`add_component`|add component(s) to an extisting or new transport archive| `directory`, `ctf`, `components`, `templater`, `settings`, `var_values` |
 |`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `force_push`, `comprepo_user`, `comprepo_password` |
 
-### `gen` (default `gen/ocm`)
+**`gen` (default `gen/ocm`)**
 
 The generation folder to use. The folder is created if not present. This folder is used for all commands.
 
-### `directory`
+**`directory`**
 
-**Optional** Will be defaulted to `gen/ocm/component`, if input is required by action.
+**[OPTIONAL]** Will be defaulted to `gen/ocm/component`, if input is required by action.
 
 The directory to generate the component information
 
-### `component`
+**`component`**
 
-**Optional** The component name. If not given the component name is derived from
+**[OPTIONAL]** The component name. If not given the component name is derived from
 the source repository.
 
-### `version`
+**`version`**
 
-**Optional** The component version.
+**[OPTIONAL]** The component version.
 
 If not given the `version_cmd` input is checked for a command to execute to derive
 the version. Otherwise the actual tag is checked. If not present the `version_file`
 file is checked and appended by the commit id.
 
-### `version_file`
+**`version_file`**
 
-**Optional** The filename used to lookup the actual version. Default `VERSION`.
+**[OPTIONAL]** The filename used to lookup the actual version. Default `VERSION`.
 
-### `version_cmd`
+**`version_cmd`**
 
-**Optional** A command called to determine the version of the component to create.
+**[OPTIONAL]** A command called to determine the version of the component to create.
 
-### `provider`
+**`provider`**
 
-**Required for** `create_component` The provider name.
+**[REQUIRED for]** `create_component` The provider name.
 
-### `resources`
+**`resources`**
 
-**Optional** The resource specification file describing the resources to add.
+**[OPTIONAL]** The resource specification file describing the resources to add.
 If not specified it checks for `gen/ocm/resources.yaml` and `ocm/resources.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
-### `references`
+**`references`**
 
-**Optional** The reference specification file describing the references to add.
+**[OPTIONAL]** The reference specification file describing the references to add.
 If not specified it checks for `gen/ocm/references.yaml` and `ocm/references.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
-### `components`
+**`components`**
 
-**Optional** The component specification file describing the components to add.
+**[OPTIONAL]** The component specification file describing the components to add.
 If not specified it checks for `gen/ocm/component-constructor.yaml` and `ocm/component-constructor.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
-### `ctf`
+**`ctf`**
 
-**Optional** The file path of a generated transport archive. Default: `gen/ocm/transport.ctf`.
+**[OPTIONAL]** The file path of a generated transport archive. Default: `gen/ocm/transport.ctf`.
 
-### `comprepo_url`
+**`comprepo_url`**
 
-**Optional for** `push_ctf`. The base URL for the used component repository.
+**[OPTIONAL for]** `push_ctf`. The base URL for the used component repository.
 For example `ghcr.io/mandelsoft/ocm`. The default is the sub repo `ocm` of
 the organization of the built repository.
 
-### `comprepo_user`
+**`comprepo_user`**
 
-**Optional for** `push_ctf`. The username used to access the component repository.
+**[OPTIONAL for]** `push_ctf`. The username used to access the component repository.
 The default is the owner of the actually built repository.
 
-### `force_push`
+**`force_push`**
 
-**Optional for** `push_ctf`. Set to `true` to allow overwriting existing versions. If not set and
+**[OPTIONAL for]** `push_ctf`. Set to `true` to allow overwriting existing versions. If not set and
 the component exists the transfer will be skipped. Use this option carefully (mostly during
 development).
 
-### `comprepo_password`
+**`comprepo_password`**
 
-**Required for** `push_ctf`. The password used to access the component repository.
+**REQUIRED for** `push_ctf`. The password used to access the component repository.
 For publishing to the github packages of the org of the current repository set this to
 `${{ secrets.GITHUB_TOKEN }}`. It requires packages write permission.
 
 ## Outputs
 
-### `component-name`
+**`component-name`**
 
 The (optional) effective component name.
 
-### `component-version`
+**`component-version`**
 
 The (optional) effective component version.
 
-### `component-path`
+**`component-path`**
 
 The (optional) workspace relative path of the generated component directory.
 
-### `transport-archive`
+**`transport-archive`**
 
 The (optional) workspace relative path of the generated transport archive
 
-### `provider`
+**`provider`**
 
 The optional provider of the component. Required for create action otherwise ignored
 
-### `templater`
+**`templater`**
 
 Template engine used to expand components, resources and references (spiff, go or subst) optional
 
-### `settings`
+**`settings`**
 
 Path to a file containing the variable values when expanding template variables (yaml syntax). Use eiher `settings` or `var_values`.
 
-Example:
+**Example**:
 
 ```yaml
 MY_VAR: my_value
@@ -149,7 +149,7 @@ MY_OTHER_VAR: my_value_2
 variable values when expanding template variables (optional yaml syntax).
 Use eiher `settings` or `var_values`.
 
-Example:
+**Example**:
 
 ```yaml
 ...
