@@ -11,9 +11,9 @@ This can be done with the action [`open-component-model/ocm-setup-action`](https
 
 ## Inputs
 
-**`action`**
+### `action` (required)
 
-**Required** The action to execute.
+The action to execute.
 
 Possible actions are
 
@@ -24,116 +24,116 @@ Possible actions are
 |`add_component`|add component(s) to an extisting or new transport archive| `directory`, `ctf`, `components`, `templater`, `settings`, `var_values` |
 |`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `force_push`, `comprepo_user`, `comprepo_password` |
 
-**`gen` (default `gen/ocm`)**
+### `gen` (default gen/ocm)
 
 The generation folder to use. The folder is created if not present. This folder is used for all commands.
 
-**`directory`**
+### `directory` (optional)
 
-**[OPTIONAL]** Will be defaulted to `gen/ocm/component`, if input is required by action.
+Will be defaulted to `gen/ocm/component`, if input is required by action.
 
 The directory to generate the component information
 
-**`component`**
+### component (optional)
 
-**[OPTIONAL]** The component name. If not given the component name is derived from
+The component name. If not given the component name is derived from
 the source repository.
 
-**`version`**
+### `version` (optional)
 
-**[OPTIONAL]** The component version.
+The component version.
 
 If not given the `version_cmd` input is checked for a command to execute to derive
 the version. Otherwise the actual tag is checked. If not present the `version_file`
 file is checked and appended by the commit id.
 
-**`version_file`**
+### `version_file` (optional)
 
-**[OPTIONAL]** The filename used to lookup the actual version. Default `VERSION`.
+The filename used to lookup the actual version. Default `VERSION`.
 
-**`version_cmd`**
+### `version_cmd` (optional)
 
-**[OPTIONAL]** A command called to determine the version of the component to create.
+A command called to determine the version of the component to create.
 
-**`provider`**
+### `provider` (required for `create_component`)
 
-**[REQUIRED for]** `create_component` The provider name.
+The provider name.
 
-**`resources`**
+### `resources` (optional)
 
-**[OPTIONAL]** The resource specification file describing the resources to add.
+The resource specification file describing the resources to add.
 If not specified it checks for `gen/ocm/resources.yaml` and `ocm/resources.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
-**`references`**
+### `references` (optional)
 
-**[OPTIONAL]** The reference specification file describing the references to add.
+The reference specification file describing the references to add.
 If not specified it checks for `gen/ocm/references.yaml` and `ocm/references.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
-**`components`**
+### `components` (optional)
 
-**[OPTIONAL]** The component specification file describing the components to add.
+The component specification file describing the components to add.
 If not specified it checks for `gen/ocm/component-constructor.yaml` and `ocm/component-constructor.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
-**`ctf`**
+### `ctf` (optional)
 
-**[OPTIONAL]** The file path of a generated transport archive. Default: `gen/ocm/transport.ctf`.
+The file path of a generated transport archive. Default: `gen/ocm/transport.ctf`.
 
-**`comprepo_url`**
+### `comprepo_url` (optional for `push_ctf`)
 
-**[OPTIONAL for]** `push_ctf`. The base URL for the used component repository.
+The base URL for the used component repository.
 For example `ghcr.io/mandelsoft/ocm`. The default is the sub repo `ocm` of
 the organization of the built repository.
 
-**`comprepo_user`**
+### `comprepo_user` (optional for `push_ctf`)
 
-**[OPTIONAL for]** `push_ctf`. The username used to access the component repository.
+The username used to access the component repository.
 The default is the owner of the actually built repository.
 
-**`force_push`**
+### `force_push` (optional for `push_ctf`)
 
-**[OPTIONAL for]** `push_ctf`. Set to `true` to allow overwriting existing versions. If not set and
+Set to `true` to allow overwriting existing versions. If not set and
 the component exists the transfer will be skipped. Use this option carefully (mostly during
 development).
 
-**`comprepo_password`**
+### `comprepo_password` (required for `push_ctf`)
 
-**REQUIRED for** `push_ctf`. The password used to access the component repository.
+The password used to access the component repository.
 For publishing to the github packages of the org of the current repository set this to
 `${{ secrets.GITHUB_TOKEN }}`. It requires packages write permission.
 
 ## Outputs
 
-**`component-name`**
+### `component-name`
 
 The (optional) effective component name.
 
-**`component-version`**
+### `component-version`
 
 The (optional) effective component version.
 
-**`component-path`**
+### `component-path`
 
 The (optional) workspace relative path of the generated component directory.
 
-**`transport-archive`**
+### `transport-archive`
 
 The (optional) workspace relative path of the generated transport archive
 
-**`provider`**
+### `provider`
 
 The optional provider of the component. Required for create action otherwise ignored
 
-**`templater`**
+### `templater`
 
 Template engine used to expand components, resources and references (spiff, go or subst) optional
 
-**`settings`**
+### `settings`
 
 Path to a file containing the variable values when expanding template variables (yaml syntax). Use eiher `settings` or `var_values`.
 
@@ -189,6 +189,7 @@ An optional templater (`templater`) can be used to process the specification fil
 In this case the value settings are used (`settings` or `var_values`).
 
 Standard values always provided:
+
 - **`VERSION`**: the specified or calculated version
 - **`NAME`**: the specified or calculated component name. The default name is derived from the source repository.
 
@@ -217,7 +218,7 @@ The following example assumes a project with a dockerfile building images for tw
 
 Note that docker is used two build single platform images and ocm is used to build and push a multi-platform image from the single-platform images. The `create-component` action will automatically add a `source` element to the component descriptor referring to the current github repository.
 
-`resources.yaml`:
+**`resources.yaml`**:
 
 ```yaml
 ---
@@ -236,7 +237,7 @@ input:
   variants: ${VARIANTS}
 ```
 
-Github action:
+**Github action**:
 
 ```yaml
 name: ocm-resources
@@ -329,9 +330,9 @@ jobs:
 
 The following example assumes a project with a dockerfile building images for two different platforms. It uses the `buildx` plugin build and push the image to an OCI registry. It uses the `ocm-action` plugin to create and upload a component-version and attach the common-tansport-archive as build artifact. The version number of the component is taken from a file named `VERSION`.
 
-The file `component.yaml` contains all the information needed to create the component-descriptor. The `add_component` action will not automatically add a `source` element to the component descriptor. You have to provide the `source` element yourself if needed.
+The file `component-constructor.yaml` contains all the information needed to create the component-descriptor. The `add_component` action will not automatically add a `source` element to the component descriptor. You have to provide the `source` element yourself if needed.
 
-`component-constructor.yaml`:
+**`component-constructor.yaml`**:
 
 ```yaml
 components:
@@ -361,7 +362,7 @@ components:
       imageReference: ${IMAGE}:${VERSION}
 ```
 
-Github action:
+**Github action**:
 
 ```yaml
 name: ocm-components
@@ -448,6 +449,6 @@ jobs:
 
 ## Licensing
 
-Copyright 2022-2023 SAP SE or an SAP affiliate company and Open Component Model contributors.
+Copyright 2024 SAP SE or an SAP affiliate company and Open Component Model contributors.
 Please see our [LICENSE](LICENSE) for copyright and license information.
 Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/open-component-model/ocm-action).
