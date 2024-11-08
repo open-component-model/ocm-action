@@ -75,8 +75,8 @@ the sources provide a static file.
 
 ### `components`
 
-**Optional** The component specification file describing the compoenents to add.
-If not specified it checks for `gen/ocm/components.yaml` and `ocm/components.yaml`.
+**Optional** The component constrcutor file describing the compoenent(s) to add.
+If not specified it checks for `gen/ocm/component-constrcutor.yaml` and `ocm/component-constrcutor.yaml`.
 With this a previous build step can create this file under the `gen` folder or
 the sources provide a static file.
 
@@ -169,14 +169,14 @@ Example:
 ### `create_component`
 
 This commands creates a component archive, which can be enriched later by resources and references.
-Alternatively, components can be completely described by a component specification file (`components`)
+Alternatively, components can be completely described by a component constrcutor file (`component-constructor.yaml`)
 and added directly to a transport archive with `add_components`.
 
 ### `add_resources`
 
 This command can be used to add resources and/or references to a component archive.
 The component version composed this way can then be added to a transport archive with `add_component`.
-Alternatively, components can be completely described by a component specification file (`components`)
+Alternatively, components can be completely described by a component specification file (`component-constructor.yaml`)
 and added directly to a transport archive with `add_components`.
 
 It uses a resources specification file (`resources`) and a references specification file (`references`).
@@ -196,9 +196,9 @@ Standard values always provided:
 
 This command can be used to create a transport archive and to add component versions. This could
 either be a previously created component archive (`directory`) or the components are taken from
-a description file (`components`).
+a description file (`component-constructor.yaml`).
 
-If no source is specified it looks for default descriptions in `gen/ocm/components.yaml` or `ocm/components.yaml`.
+If no source is specified it looks for default descriptions in `gen/ocm/component-constructor.yaml` or `ocm/component-constructor.yaml`.
 If no such description is found. It tries to use `add_resources`.
 
 An optional templater (`templater`) can be used to process the specification file prior to evaluation.
@@ -313,7 +313,7 @@ jobs:
         uses: open-component-model/ocm-action@main
         with:
           action: push_ctf
-          # Warning: use force_push only for development (overwrites existing components)!
+          # Warning: use force_push only for development (overwrites existing component(s))!
           force_push: true
           comprepo_password: ${{ secrets.GITHUB_TOKEN }}
           comprepo_url: ${{ env.CD_REPO }}
@@ -325,13 +325,13 @@ jobs:
             gen/ocm/ctf
 ```
 
-### Using components.yaml
+### Using component-constructor.yaml
 
 The following example assumes a project with a dockerfile building images for two different platforms. It uses the `buildx` plugin build and push the image to an OCI registry. It uses the `ocm-action` plugin to create and upload a component-version and attach the common-tansport-archive as build artifact. The version number of the component is taken from a file named `VERSION`.
 
 The file `component.yaml` contains all the information needed to create the component-descriptor. The `add_component` action will not automatically add a `source` element to the component descriptor. You have to provide the `source` element yourself if needed.
 
-`components.yaml`:
+`component-constructor.yaml`:
 
 ```yaml
 components:
@@ -418,7 +418,7 @@ jobs:
         uses: open-component-model/ocm-action@main
         with:
           action: add_component
-          components: components.yaml
+          components: component-constructor.yaml
           directory: .
           version: ${{ env.VERSION }}
           var_values: |
@@ -434,7 +434,7 @@ jobs:
         with:
           action: push_ctf
           comprepo_url: ${{ env.CD_REPO}}
-          # Warning: use force_push only for development (overwrites existing components)!
+          # Warning: use force_push only for development (overwrites existing component(s))!
           force_push: true
           comprepo_password: ${{ secrets.GITHUB_TOKEN }}
       # Optional: attach the common transport format archive to the workflow run
