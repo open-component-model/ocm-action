@@ -257,12 +257,12 @@ addResources()
 addComponent()
 {
   if [ -z "$ocm_components"  -a ! -d "$ocm_componentdir" ]; then
-    # check for implicit components.yaml
-    if [ -f "$GEN/components.yaml" ]; then
-      ocm_components="$GEN/components.yaml"
+    # check for implicit component-constructor.yaml
+    if [ -f "$GEN/component-constructor.yaml" ]; then
+      ocm_components="$GEN/component-constructor.yaml"
     else
-      if [ -f "ocm/components.yaml" ]; then
-        ocm_components=ocm/components.yaml
+      if [ -f "ocm/component-constructor.yaml" ]; then
+        ocm_components=ocm/component-constructor.yaml
       fi
     fi
   fi
