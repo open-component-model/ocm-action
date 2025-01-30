@@ -17,12 +17,12 @@ The action to execute.
 
 Possible actions are
 
-|Action|Meaning|Inputs|
-|------|-------|------|
-|`create_component`|create a component folder with component descriptor| `directory`, `component`, `version`, `provider` |
-|`add_resources`|add resources/references to an already existing or new component| `directory`, `component`, `version`, `provider`, `resources`, `references`, `templater`, `settings`, `var_values` |
-|`add_component`|add component(s) to an extisting or new transport archive| `directory`, `ctf`, `components`, `templater`, `settings`, `var_values` |
-|`push_ctf`|push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive.| `directory`, `ctf`, `comprepo_url`, `force_push`, `comprepo_user`, `comprepo_password` |
+| Action             | Meaning                                                                                                                                                 | Inputs                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `create_component` | create a component folder with component descriptor                                                                                                     | `directory`, `component`, `version`, `provider`                                                                   |
+| `add_resources`    | add resources/references to an already existing or new component                                                                                        | `directory`, `component`, `version`, `provider`, `resources`, `references`, `templater`, `settings`, `var_values` |
+| `add_component`    | add component(s) to an extisting or new transport archive                                                                                               | `directory`, `ctf`, `components`, `templater`, `settings`, `var_values`                                           |
+| `push_ctf`         | push the transport archive. If it does not exist and a component directory is given, the actual component will be used to create the transport archive. | `directory`, `ctf`, `comprepo_url`, `force_push`, `comprepo_user`, `comprepo_password`                            |
 
 ### `gen` (default gen/ocm)
 
@@ -449,6 +449,6 @@ jobs:
 
 ## Licensing
 
-Copyright 2024 SAP SE or an SAP affiliate company and Open Component Model contributors.
+Copyright 2025 SAP SE or an SAP affiliate company and Open Component Model contributors.
 Please see our [LICENSE](LICENSE) for copyright and license information.
 Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/open-component-model/ocm-action).
